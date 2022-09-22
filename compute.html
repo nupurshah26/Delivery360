@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">       
+        <title>Delivery 360 - Compute cost</title>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+        <script src="./owlcarousel/owl.carousel.min.js"></script>        
+        <script src="./js/script.js" type="text/javascript"></script>
+        <script src="./js/stateAbbreviations.js"></script>
+        <link rel="icon" type="image/x-icon" href="./img/favicon.ico">
+        <link rel="stylesheet" href="./css/styles.css">
+        <link rel="stylesheet" href="owlcarousel/owl.carousel.min.css">
+        <link rel="stylesheet" href="owlcarousel/owl.theme.default.min.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" integrity="sha384-DyZ88mC6Up2uqS4h/KRgHuoeGwBcD4Ng9SiP4dIRy0EXTlnuz47vAwmeGwVChigm" crossorigin="anonymous">
+        <script>
+            function formatString(str) {
+              return str.replace(/(\B)[^ ]*/g, match => (match.toLowerCase())).replace(/^[^ ]/g, match => (match.toUpperCase()));
+            }
+           $(function(){
+                var dtToday = new Date();
+                
+                var month = dtToday.getMonth() + 1;
+                var day = dtToday.getDate();
+                var year = dtToday.getFullYear();
+                if(month < 10)
+                    month = '0' + month.toString();
+                if(day < 10)
+                    day = '0' + day.toString();
+                
+                var minDate= year + '-' + month + '-' + day;
+                
+                $('#date').attr('min', minDate);
+
+                $('[id*=from_loc]').on('blur', function () {
+                var url = 'https://ziptasticapi.com/' + $(this).val().trim();
+                $.getJSON(url, function (response) {
+                    if(response.error) {
+                        $('[id=fromerrormsg]').html(response.error);
+                        $('[id=city]').html("");
+                        $('[id=state]').html("");
+                        $('#submit').attr('disabled', true);
+                    } 
+                        $('[id=city]').html(formatString(response.city));
+                        $('[id=state]').html(convertRegion(response.state,TO_NAME));
+                    if(response.city) {
+                        $('[id=fromerrormsg]').html(" ");
+                        $('#submit').attr('disabled', false);
+                    }             
+                });
+                });
+
+                $('[id*=to_loc]').on('blur', function () {
+                var url = 'https://ziptasticapi.com/' + $(this).val().trim();
+                $.getJSON(url, function (response) {
+                    if(response.error) {
+                        $('[id=toerrormsg]').html(response.error);
+                        $('[id=tocity]').html("");
+                        $('[id=tostate]').html("");
+                        $('#submit').attr('disabled', true);
+                    } 
+                        $('[id=tocity]').html(formatString(response.city));
+                        $('[id=tostate]').html(convertRegion(response.state,TO_NAME));
+                    if(response.city) {
+                        $('[id=toerrormsg]').html("");
+                        $('#submit').attr('disabled', false);
+                    }
+                    var fromzip = $('[id*=from_loc]').val();
+                    var fromzipcodeerror = 'https://ziptasticapi.com/' + fromzip;
+                    $.getJSON(fromzipcodeerror, function (fromresponse) {
+                        if(fromresponse.error) {
+                            $('#submit').attr('disabled', true);
+                        }
+                    });                                   
+                });
+                });                                
+            });
+            function sendEmail(){
+                alert("Email Sent");
+                var tableData = $('#cost-tables').html();   
+                const sendData = {
+                    tData:tableData,
+                    mailId:document.getElementById("email").value
+                }         
+                var data = JSON.stringify(sendData);                
+                $.post("https://nodejs-email-service.herokuapp.com/subscribe/", sendData, function(data,status){
+                    alert(data);
+                });
+            }
+        </script>
+    </head>    
+    <body>
+        <header class="page-header">
+            <div class="header-content">
+                <a href="index.html" style="padding-left: revert;"><img src="./img/logo.png" alt="Delivery 360"></a>
+                <div class="header-right">
+                    <a href="index.html"><li class="fas fa-home"><span style="font-family: 'mikadolight',sans-serif !important; margin-left: 5px;">Home</span></li></a>
+                    <a href="about-us.html"><li class="fas fa-users"><span style="font-family: 'mikadolight',sans-serif !important; margin-left: 5px;">About Us</span></li></a>
+                    <a class="active" href="compute.html"><li class="fas fa-calculator"><span style="font-family: 'mikadolight',sans-serif !important; margin-left: 5px;">Compute Cost</span></li></a>
+                </div>
+            </div>
+            
+        </header>
+        <div class="home_content">
+            <div class="section">
+            <ul>
+              <li class="symbol"><a href="index.html" title="Go to Home Page">Home</a></li>
+              <li class="text symbol">Compute Cost</li>     
+            </ul>
+            </div>
+            <p>Delivery 360 is started to provide shipping cost between one place to another place, of various delivery organizations. This is one stop place for customer to get all the information</p>
+
+            <div class="form_container">
+                <form method="post" onsubmit="costFunc()">
+                    <span class="require">* Required Fields</span>
+                    <div class="row">
+                        <div class="col-25">
+                            <label for="from_loc" class="required">What ZIP Code are you mailing from?</label>
+                        </div>
+                        <div class="col-35">
+                            <input type="text" id="from_loc" name="from" placeholder="5-Digit ZIP Code" pattern="[0-9]{5}" value="" required>
+                            <span id="fromerrormsg" class="error"></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-25">
+                            <label for="state">Mailing from state: </label>
+                        </div>
+                        <div class="col-35">
+                            <label id="state"></label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-25">
+                            <label for="city">Mailing from city: </label>
+                        </div>
+                        <div class="col-35">
+                            <label id="city"></label>                
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-25">
+                            <label for="to_loc" class="required">What ZIP Code are you mailing to?</label>
+                        </div>
+                        <div class="col-35">
+                            <input type="text" id="to_loc" name="to" placeholder="5-Digit ZIP Code" pattern="[0-9]{5}" value="" required>  
+                            <span id="toerrormsg" class="error"></span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-25">
+                            <label for="tostate">Mailing to state: </label>
+                        </div>
+                        <div class="col-35">
+                            <label id="tostate"></label>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-25">
+                            <label for="tocity">Mailing to city: </label>
+                        </div>
+                        <div class="col-35">
+                            <label id="tocity"></label>                
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-25">
+                            <label for="date" class="required">Date you plan to ship:</label>
+                        </div>
+                        <div class="col-35">
+                            <input type="date" id="date" name="shipdate" placeholder="MM/DD/YYYY" required>                            
+                        </div>
+                    </div>
+                    <br>
+                    <div class="accurateweight">
+                    Actual dimensions/weight will provide more accurate cost.
+                                        <div class="tooltip">
+                    <i class="fa fa-info-circle" style="font-size:24px"></i>
+                    <span class="tooltiptext">1. For weight less than 10, base price * 1.5, 2. For weight weight between 10 and 25, base price * 2.5</span>
+                </div>
+
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-25">
+                            <label for="weight" class="required">Package weight (lbs):</label>
+                        </div>
+                        <div class="col-35">
+                            <input type="number" id="weight" name="weight" required step=".01">
+                        </div>
+                    </div>                   
+                    <div class="row">
+                        <div class="col-25">
+                            <label for="length">Package length (inches):</label>
+                        </div>
+                        <div class="col-35">
+                            <input type="number" id="length" name="length" step=".01">                            
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-25">
+                            <label for="width">Package width (inches):</label>
+                        </div>
+                        <div class="col-35">
+                            <input type="number" id="width" name="width" step=".01">                            
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-25">
+                            <label for="height">Package height (inches):</label>
+                        </div>
+                        <div class="col-35">
+                            <input type="number" id="height" name="height" step=".01">                            
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <input type="submit" id="submit" value="Calculate">
+                        <input type="reset" id="reset" value="Reset">
+                    </div>
+                </form>
+            </div>
+            <table id="cost-tables" class="cost-table hide">
+<!--                 <h2>Cost of various shipping</h2> -->
+                <thead>
+                    <p id="note"></p>
+                    <tr>
+                        <th>Courier</th>
+                        <th>Cost</th>
+                        <th>Estimated delivery date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><i class="fab fa-ups" style="color: #4D148C"></i> UPS - UPS Next Day Air</td>
+                        <td id="upspriorityexpresscost"></td>
+                        <td id="upspriorityexpresseta"></td>
+                    </tr>
+                    
+                        <tr>
+                        <td><i class="fab fa-usps" style="color:#004B87"></i>USPS - Priority Mail Express</td>
+                        <td id="uspspriorityexpresscost"></td>
+                        <td id="uspspriorityexpresseta"></td>
+                    </tr>
+                    
+                      <tr>
+                        <td><i class="fab fa-fedex" style="color: #004B87; "></i>FedEx - FedEx Priority Overnight</td>
+                        <td id="fedxpriorityexpresscost"></td>
+                        <td id="fedxpriorityexpresseta"></td>
+                    </tr>
+                  
+                    
+                      <tr>
+                        <td><i class="fab fa-usps" style="color: #004B87"></i>USPS - Priority Mail</td>
+                        <td id="uspsprioritycost"></td>
+                        <td id="uspspriorityeta"></td>
+                    </tr>
+                     <tr>
+                         <td><i class="fab fa-ups" style="color: #4D148C"></i>UPS - UPS Ground</td>
+                        <td id="upsprioritycost"></td>
+                        <td id="upspriorityeta"></td>
+                         
+                    </tr>
+                       <tr>
+                        <td><i class="fab fa-fedex" style="color: #004B87"></i> FedEx - FedEx 2Day</td>
+                        <td id="fedxprioritycost"></td>
+                        <td id="fedxpriorityeta"></td>
+                    </tr>
+                </tbody>
+            </table>
+        <div>
+            <form method="POST" id="email_form" style="display:none;" class="form_container">
+                <div class="row">
+                    <div class="col-25">
+                        <label for="email">Email the quote:</label>
+                    </div>
+                    <div class="col-35">
+                        <input id="email" type="email" placeholder="Email">
+                    </div>
+                    <div class="row">
+                        <input type="button" value="Submit" onclick="sendEmail()">
+                    </div>
+                </div>                
+            </form>
+        </div>
+        </div>      
+        <footer class="page-footer">
+            <div class="footer content">
+                <div class="footer-inner">
+                    <div class="footer-cols">
+                        <h3>Company</h3>
+                        <ul>
+                            <li><a href="about-us.html">About Us</a></li>
+                            <li><a href="#">Contact Us</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-cols">
+                        <h3>What you can do</h3>
+                        <ul>
+                            <li><a href="compute.html">Compute Shipping Cost</a></li>
+                            <li><a href="#">Reviews</a></li>
+                            <li><a href="#">FAQs</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-cols">
+                        <h3>Help &amp; Support</h3>
+                        <ul>
+                            <li><a href="#">Terms &amp; Conditions</a></li>
+                            <li><a href="privacy.html">Privacy Policy</a></li>
+                            <li><a href="#">Cookie Policy</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-cols">
+                        <ul class="contact-detail">
+                            <li class="mail-contact fas fa-envelope"><a href="mailto:info@delivery360.com"><span style="font-family: 'mikadolight',sans-serif !important;">info@delivery360.com</span></a></li>
+                            <li class="call-contact fas fa-phone-alt"><a href="tel:+14443283284"><span style="font-family: 'mikadolight',sans-serif !important;">+1 (444)328-3284</span></a></li>
+                        </ul>
+                        <ul class="social-icon">
+                            <li class="tw">
+                                <a title="Twitter" href="https://twitter.com/" target="_blank">
+                                    <img src="./img/twitter.png" alt="Twitter">
+                                </a>
+                            </li>                            
+                            <li class="fb">
+                                <a title="Facebook" href="https://facebook.com/" target="_blank" >
+                                    <img src="./img/facebook.png" alt="Facebook">
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+            </div> 
+            <small class="copyright"><span>All content © Delivery 360. All Rights Reserved.</span></small> 
+        </div>
+        </footer>
+        <script type='text/javascript'>
+        (function(I, L, T, i, c, k, s) {if(I.iticks) return;I.iticks = {host:c, settings:s, clientId:k, cdn:L, queue:[]};var h = T.head || T.documentElement;var e = T.createElement(i);var l = I.location;e.async = true;e.src = (L||c)+'/client/inject-v2.min.js';h.insertBefore(e, h.firstChild);I.iticks.call = function(a, b) {I.iticks.queue.push([a, b]);};})(window, 'https://cdn-v1.intelliticks.com/prod/common', document, 'script', 'https://app.intelliticks.com', 'JqnyixLjMpSiNHgFN_c', {});
+
+        function sortTableByColumn(table, column, asc = true) {
+            const dirModifier = asc ? 1 : -1;
+            const tBody = table.tBodies[0];
+            const rows = Array.from(tBody.querySelectorAll("tr"));
+
+            // Sort each row
+            const sortedRows = rows.sort((a, b) => {
+                const aColText = a.querySelector(`td:nth-child(${ column + 1 })`).textContent.trim();
+                const bColText = b.querySelector(`td:nth-child(${ column + 1 })`).textContent.trim();
+
+                return aColText > bColText ? (1 * dirModifier) : (-1 * dirModifier);
+            });
+
+            // Remove all existing TRs from the table
+            while (tBody.firstChild) {
+                tBody.removeChild(tBody.firstChild);
+            }
+
+            // Re-add the newly sorted rows
+            tBody.append(...sortedRows);
+
+            // Remember how the column is currently sorted
+            table.querySelectorAll("th").forEach(th => th.classList.remove("th-sort-asc", "th-sort-desc"));
+            table.querySelector(`th:nth-child(${ column + 1})`).classList.toggle("th-sort-asc", asc);
+            table.querySelector(`th:nth-child(${ column + 1})`).classList.toggle("th-sort-desc", !asc);
+        }
+
+        document.querySelectorAll(".cost-table th").forEach(headerCell => {
+            headerCell.addEventListener("click", () => {
+                const tableElement = headerCell.parentElement.parentElement.parentElement;
+                const headerIndex = Array.prototype.indexOf.call(headerCell.parentElement.children, headerCell);
+                const currentIsAscending = headerCell.classList.contains("th-sort-asc");
+
+                sortTableByColumn(tableElement, headerIndex, !currentIsAscending);
+            });
+});
+        </script>
+    </body>
+</html>
